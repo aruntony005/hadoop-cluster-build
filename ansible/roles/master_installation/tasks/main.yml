@@ -1,0 +1,276 @@
+---
+- block:
+  - name: Create user for hadoop
+    user:
+      name: hdfs
+      group: root
+    become: yes
+
+  - set_fact:
+      user: hdfs
+
+  - name: Get the master node details
+    set_fact:
+     master: "{{ groups.master }}"
+    ignore_errors: yes
+
+  - name: Get the worker details
+    set_fact:
+     worker: "{{ groups.worker }}"
+    ignore_errors: yes
+
+  - name: Add sudo permission to the user
+    lineinfile:
+      dest: /etc/sudoers
+      state: present
+      line: 'hdfs ALL=(ALL) NOPASSWD: ALL'
+      insertafter: EOF
+    become: yes
+
+  - name: Copy the ssh folder
+    copy:
+      src: /root/.ssh
+      dest: /home/hdfs/.ssh
+      owner: hdfs
+      group: hdfs
+      mode: '0700'
+    become: yes
+
+  - name: Change the permissions of the keys
+    file:
+      path: "{{ item.key }}"
+      owner: hdfs
+      group: hdfs
+      mode: "{{ item.value }}"
+    with_dict:
+      - { "/home/hdfs/.ssh/id_rsa" : "600", "/home/hdfs/.ssh/authorized_keys" : "644" }
+
+  - name: Install packages
+    yum:
+      name: "{{ item }}"
+      state: present
+    with_items:
+     - java-1.8.0-openjdk-devel
+     - wget
+    become: yes
+
+  - name: Download the hadoop, hive and spark tar file
+    get_url:
+      url: "{{ item }}"
+      dest: /opt
+    with-items:
+      - https://downloads.apache.org/hadoop/common/hadoop-3.2.2/hadoop-3.2.2.tar.gz
+      - https://apachemirror.wuchna.com/spark/spark-2.4.8/spark-2.4.8-bin-hadoop2.7.tgz
+      - https://dev.mysql.com/get/mysql57-community-release-el7-9.noarch.rpm
+      - https://downloads.apache.org/hive/hive-3.1.2/apache-hive-3.1.2-bin.tar.gz
+      - https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.24-1.el8.noarch.rpm
+    become_user: hdfs
+
+  - name: Change the ownership of the packages
+    file:
+      path: "{{ item }}"
+      owner: hdfs
+      group: hdfs
+    with_items:
+      - https://downloads.apache.org/hadoop/common/hadoop-3.2.2/hadoop-3.2.2.tar.gz
+      - https://apachemirror.wuchna.com/spark/spark-2.4.8/spark-2.4.8-bin-hadoop2.7.tgz
+      - https://dev.mysql.com/get/mysql57-community-release-el7-9.noarch.rpm
+      - https://downloads.apache.org/hive/hive-3.1.2/apache-hive-3.1.2-bin.tar.gz
+      - https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.24-1.el8.noarch.rpm
+    become: yes
+
+  - name: Unarchive the files
+    unarchive:
+      src: "{{ item.key }}"
+      dest: "{{ item.value }}"
+      owner: hdfs
+      group: hdfs
+    with_dict:
+      - { "/opt/hadoop-3.2.2.tar.gz" : "/opt/hadoop", "/opt/spark-2.4.8-bin-hadoop2.7.tgz" : "/opt/spark", "/opt/apache-hive-3.1.2-bin.tar.gz" : "hive" }
+
+  - name: Get the java home
+    shell: ls -ltr /etc/alternatives/java | sed 's/\/bin\/java//g;s/ //g' | awk -F'>' '{print $2}'
+    register: java_home
+
+  - name: Add content to bash_profile
+    blockinfile:
+      path: /home/hdfs/.bash_profile
+      insertafter: EOF
+      block: |
+           export PATH=$PATH:/opt/hadoop/bin:/opt/hadoop/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin
+           export JAVA_HOME={{ java_home.stdout_lines[0] }}
+           export HADOOP_HOME=/opt/hadoop
+           export PATH=$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin:/bin:/sbin
+           export HDFS_NAMENODE_USER="{{ user }}"
+           export HDFS_DATANODE_USER="{{ user }}"
+           export HDFS_SECONDARYNAMENODE_USER="{{ user }}"
+           export YARN_RESOURCEMANAGER_USER="{{ user }}"
+           export YARN_NODEMANAGER_USER="{{ user }}"
+    become_user: hdfs
+
+
+  - name: Add content to bashrc
+    blockinfile:
+      path: /home/hdfs/.bashrc
+      insertafter: EOF
+      block: |
+           export PATH=$PATH:/opt/hadoop/bin:/opt/hadoop/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin
+           export JAVA_HOME={{ java_home.stdout_lines[0] }}
+    become_user: hdfs
+
+  - name: source the bash files
+    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile
+    become_user: hdfs
+
+  - name: Add content to hadoop-env.sh
+    blockinfile:
+      path: /opt/hadoop/etc/hadoop/hadoop-env.sh
+      insertafter: EOF
+      block: |
+          export JAVA_HOME={{ java_home.stdout_lines[0] }}
+          export HADOOP_HOME=/opt/hadoop
+
+  - name: Remove lines in the xml files
+    lineinfile:
+      path: 
+      regexp: 'configuration'
+      state: absent
+      owner: hdfs
+      group: hdfs
+    with_items:
+      - "/opt/hadoop/etc/hadoop/core-site.xml"
+      - "/opt/hadoop/etc/hadoop/hdfs-site.xml"
+      - "/opt/hadoop/etc/hadoop/mapred-site.xml"
+      - "/opt/hadoop/etc/hadoop/yarn-site.xml"
+
+  - name: Add content to core-site.xml
+    blockinfile:
+      path: /opt/hadoop/etc/hadoop/core-site.xml
+      insertafter: EOF
+      block: |
+          <configuration>
+                 <property>
+                      <name>fs.default.name</name>
+                      <value>hdfs://{{ master[0] }}:9000</value>
+                  </property>
+          </configuration>
+
+  - name: Add content to hdfs-site.xml
+    blockinfile:
+      path: /opt/hadoop/etc/hadoop/hdfs-site.xml
+      insertafter: EOF
+      block: |
+          <configuration>
+              <property>
+                      <name>dfs.namenode.name.dir</name>
+                      <value>/opt/data/nameNode</value>
+              </property>
+              <property>
+                      <name>dfs.datanode.data.dir</name>
+                      <value>/opt/data/dataNode</value>
+              </property>
+              <property>
+                      <name>dfs.replication</name>
+                      <value>2</value>
+              </property>
+          </configuration>
+
+  - name: Add content to mapred-site.xml
+    blockinfile:
+      path: /opt/hadoop/etc/hadoop/mapred-site.xml
+      insertafter: EOF
+      block: |
+          <configuration>
+              <property>
+                      <name>mapreduce.framework.name</name>
+                      <value>yarn</value>
+              </property>
+              <property>
+                      <name>yarn.app.mapreduce.am.env</name>
+                      <value>HADOOP_MAPRED_HOME=$HADOOP_HOME</value>
+              </property>
+              <property>
+                      <name>mapreduce.map.env</name>
+                      <value>HADOOP_MAPRED_HOME=$HADOOP_HOME</value>
+              </property>
+              <property>
+                      <name>mapreduce.reduce.env</name>
+                      <value>HADOOP_MAPRED_HOME=$HADOOP_HOME</value>
+              </property>
+              <property>
+                  <name>yarn.app.mapreduce.am.resource.mb</name>
+                  <value>512</value>
+          </property>
+          <property>
+                  <name>mapreduce.map.memory.mb</name>
+                  <value>256</value>
+          </property>
+          <property>
+                  <name>mapreduce.reduce.memory.mb</name>
+                  <value>256</value>
+          </property>
+          </configuration>
+
+  - name: Add content to yarn-site.xml
+    blockinfile:
+      path: /opt/hadoop/etc/hadoop/yarn-site.xml
+      insertafter: EOF
+      block: |
+          <configuration>
+              <property>
+                      <name>yarn.acl.enable</name>
+                      <value>0</value>
+              </property>
+              <property>
+                      <name>yarn.resourcemanager.hostname</name>
+                      <value>{{ master[0] }}</value>
+              </property>
+              <property>
+                      <name>yarn.nodemanager.aux-services</name>
+                      <value>mapreduce_shuffle</value>
+              </property>
+              <property>
+                  <name>yarn.nodemanager.resource.memory-mb</name>
+                  <value>1536</value>
+          </property>
+          <property>
+                  <name>yarn.scheduler.maximum-allocation-mb</name>
+                  <value>1536</value>
+          </property>
+          <property>
+                  <name>yarn.scheduler.minimum-allocation-mb</name>
+                  <value>128</value>
+          </property>
+          <property>
+                  <name>yarn.nodemanager.vmem-check-enabled</name>
+                  <value>false</value>
+          </property>
+          </configuration>
+
+  - name: add the worker nodes
+    lineinfile:
+      dest: /opt/hadoop/etc/hadoop/workers
+      state: present
+      line: "{{ worker }}"
+      insertafter: EOF
+    become_user: hdfs
+
+  - name: Format namenode
+    shell: hdfs namenode -format
+
+  - name: Start the services
+    shell: start-all.sh
+
+
+
+
+
+
+
+
+
+
+
+
+
+

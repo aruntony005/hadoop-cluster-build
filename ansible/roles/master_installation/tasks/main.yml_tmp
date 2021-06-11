@@ -1,0 +1,48 @@
+---
+- block:
+  - name: Create user for hadoop
+    user:
+      name: hdfs
+      group: root
+    become: yes
+
+  - set_fact:
+      user: hdfs
+
+  - name: Get the master node details
+    set_fact:
+     master: "{{ groups.master }}"
+    ignore_errors: yes
+
+  - name: Get the worker details
+    set_fact:
+     worker: "{{ groups.worker }}"
+    ignore_errors: yes
+
+  - name: Add sudo permission to the user
+    lineinfile:
+      dest: /etc/sudoers
+      state: present
+      line: 'hdfs ALL=(ALL) NOPASSWD: ALL'
+      insertafter: EOF
+    become: yes
+
+  - shell: ls -ltr /etc/alternatives/java | sed 's/\/bin\/java//g;s/ //g' | awk -F'>' '{print $2}'
+    register: java_home
+
+  - name: Add content to bash_profile
+    copy:
+      dest: /root/sample
+      content: |
+        {{ master[0] }}
+        {{ worker }}
+        {{ java_home.stdout_lines[0] }}
+
+  - name: Add sudo permission to the user
+    lineinfile:
+      dest: /root/loop
+      state: present
+      line: "{{ item }}"
+      insertafter: EOF
+    with_items: "{{ worker }}"
+
