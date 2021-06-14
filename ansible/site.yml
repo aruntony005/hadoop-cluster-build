@@ -1,7 +1,16 @@
 - name: kubernetes cluster build
-  hosts: master
+  hosts: localhost
   gather_facts: yes
   become: yes
+  tasks:
+   - name: Hadoop installation
+     shell: ansible-playbook hadoop.yml > /root/log
 
-  roles:
-  - master_installation
+   - name: Spark installation
+     shell: ansible-playbook spark.yml >> /root/log
+
+   - name: Hive installation
+     shell: ansible-playbook hive.yml >> /root/log
+     
+   - name: Hive metastore setup
+     shell: ansible-playbook hive-metastore.yml >> /root/log     
