@@ -101,7 +101,7 @@ cat >> /opt/hadoop/etc/hadoop/core-site.xml << EOF
 <configuration>
        <property>
             <name>fs.default.name</name>
-            <value>hdfs://master:9000</value>
+            <value>hdfs://localhost:9000</value>
         </property>
 </configuration>
 EOF
@@ -178,7 +178,7 @@ cat >> /opt/hadoop/etc/hadoop/yarn-site.xml << EOF
 
     <property>
             <name>yarn.resourcemanager.hostname</name>
-            <value>master</value>
+            <value>localhost</value>
     </property>
 
     <property>
@@ -211,11 +211,11 @@ EOF
 
 
 
-echo -e "worker1\nworker2" >> /opt/hadoop/etc/hadoop/workers
+# echo -e "worker1\nworker2" >> /opt/hadoop/etc/hadoop/workers
 sudo chown -R aruntony005:aruntony005 /opt
 =================================================
 
-# Only on master
+# Only on 10.128.0.50
 ========================
 hdfs namenode -format
 
@@ -223,13 +223,13 @@ start-all.sh
 =======================
 
 -> Get the hadoop namenode UI in 
-http://<master ip>:9870/
+http://<10.128.0.50 ip>:9870/
 
 ######## SPARK #############
 
 https://medium.com/@jootorres_11979/how-to-install-and-set-up-an-apache-spark-cluster-on-hadoop-18-04-b4d70650ed42
 
-On master node 
+On 10.128.0.50 node 
 ===========================
 hdfs dfs -mkdir -p /spark/logs
 =============================
@@ -265,48 +265,49 @@ mv /opt/spark/conf/spark-defaults.conf.template /opt/spark/conf/spark-defaults.c
 
 
 cat >> /opt/spark/conf/spark-defaults.conf << EOF
-spark.master    yarn
+spark.localhost    yarn
 spark.driver.memory    512m
 spark.yarn.am.memory    512m
 spark.executor.memory          512m
 spark.eventLog.enabled  true
-spark.eventLog.dir hdfs://master:9000/spark/logs
+spark.eventLog.dir hdfs://localhost:9000/spark/logs
 spark.history.provider            org.apache.spark.deploy.history.FsHistoryProvider
-spark.history.fs.logDirectory     hdfs://master:9000/spark/logs
+spark.history.fs.logDirectory     hdfs://localhost:9000/spark/logs
 spark.history.fs.update.interval  10s
 spark.history.ui.port             18080
 EOF
 
 mv /opt/spark/conf/spark-env.sh.template /opt/spark/conf/spark-env.sh
 
-# export SPARK_MASTER_HOST='<MASTER-IP>'export JAVA_HOME=<Path_of_JAVA_installation>
+# export SPARK_MASTER_HOST='<10.128.0.50-IP>'export JAVA_HOME=<Path_of_JAVA_installation>
 
-echo "export SPARK_MASTER_HOST='master'" >> /opt/spark/conf/spark-env.sh
+echo "export SPARK_MASTER_HOST='localhost'" >> /opt/spark/conf/spark-env.sh
 echo "export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.292.b10-1.el8_4.x86_64/jre" >> /opt/spark/conf/spark-env.sh
 
 # mv /opt/spark/conf/slaves.template /opt/spark/conf/slaves
-echo -e "master\nworker1\nworker2" > /opt/spark/conf/slaves
+# echo -e "10.128.0.50\nworker1\nworker2" > /opt/spark/conf/slaves
 ============================
 
-On master node 
+On 10.128.0.50 node 
 ==================================
 sh /opt/spark/sbin/start-all.sh
 ===================================
 
 -> Get the spark ui in 
-http://<master ip>:8080
+http://<10.128.0.50 ip>:8080
 -> Get the yarn resource manager in 
-http://<master ip>:8088
+http://<10.128.0.50 ip>:8088
 
 
 -> Test with data
+sudo yum install git -y
 git clone https://github.com/dgadiraju/data.git
 hdfs dfs -mkdir /public
 hdfs dfs -put ${HOME}/data/retail_db /public/.
 
-
-======= Completed till this
-
+pyspark
+>>> a=spark.read.csv('/public/retail_db/orders')
+>>> a.show()
 
 ######### HIVE ################
 
@@ -326,11 +327,6 @@ sudo systemctl start mysqld
 sudo systemctl status mysqld
 mysql_secure_installation
 
-wget https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.24-1.el8.noarch.rpm
-sudo rpm -ivh mysql-connector-java-8.0.24-1.el8.noarch.rpm
-sudo cp /usr/share/java/mysql-connector-java.jar /opt/hive/lib
-cp /opt/hadoop/share/hadoop/common/lib/guava-27.0-jre.jar /opt/hive/lib
-rm /opt/hive/lib/guava-19.0.jar
 
 
 
@@ -344,16 +340,9 @@ sudo mysql -u root -p -e"create database hive"
 sudo mysql -uroot -p -e "CREATE USER 'hiveuser'@'%' IDENTIFIED BY 'hivepassword'"
 sudo mysql -uroot -p -e "GRANT ALL PRIVILEGES ON *.* TO 'hiveuser'@'%' WITH GRANT OPTION"
 
-wget https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.24-1.el8.noarch.rpm
-sudo rpm -ivh mysql-connector-java-8.0.24-1.el8.noarch.rpm
-sudo cp /usr/share/java/mysql-connector-java.jar /opt/hive/lib
-cp /opt/hadoop/share/hadoop/common/lib/guava-27.0-jre.jar /opt/hive/lib
-rm /opt/hive/lib/guava-19.0.jar
-
-
 ==========================================
 
-on master node
+on 10.128.0.50 node
 ======================
 hdfs dfs -mkdir -p /user/hive/warehouse
 hdfs dfs -mkdir /tmp
@@ -395,7 +384,7 @@ cat > /opt/hive/conf/hive-site.xml << EOF
 <configuration>
     <property>
         <name>javax.jdo.option.ConnectionURL</name>
-        <value>jdbc:mysql://10.128.0.44:3306/hive</value>
+        <value>jdbc:mysql://localhost:3306/hive</value>
         <description>JDBC connection string used by Hive Metastore</description>
     </property>
     <property>
@@ -427,36 +416,48 @@ cat > /opt/hive/conf/hive-site.xml << EOF
 
   <property>
     <name>hive.metastore.uris</name>
-    <value>thrift://10.128.0.44:9083</value>
+    <value>thrift://localhost:9083</value>
     <description>URI for client to contact metastore server</description>
   </property>
 
 </configuration>
 EOF
 
-
-#hive
-
-#create table test (name string, num1 int, num2 int, num3 int) row format delimited fields terminated by ',' stored as textfile;
-
-=============check this hiv property=========
-    <property>
-        <name>hive.metastore.uris</name>
-        <value>thrift://localhost:9084</value>
-        <description>Thrift server hostname and port</description>
-    </property>
-===========================================
+wget https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.24-1.el8.noarch.rpm
+sudo rpm -ivh mysql-connector-java-8.0.24-1.el8.noarch.rpm
+sudo cp /usr/share/java/mysql-connector-java.jar /opt/hive/lib
+cp /opt/hadoop/share/hadoop/common/lib/guava-27.0-jre.jar /opt/hive/lib
+rm /opt/hive/lib/guava-19.0.jar
 
 ========spark+hive=========
 
 cp  /opt/hive/conf/hive-site.xml  /opt/spark/conf/
 
-###jdbc:mysql://localhost/metastore?createDatabaseIfNotExist=true
-
 schematool -dbType mysql -initSchema
 schematool -dbType mysql -info
 
 nohup hive --service metastore & /dev/null 2>&1
+
+
+hive
+
+CREATE DATABASE qwerty;
+
+create table qwerty.orders (
+  order_id int,
+  order_date string,
+  order_customer_id int,
+  order_status string
+) row format delimited fields terminated by ','
+stored as textfile;
+
+load data inpath '/public/retail_db/orders' into table qwerty.orders;
+
+
+
+
+
+
 
 
 ========================================================================================================================================
@@ -502,12 +503,12 @@ syncLimit=5
 4lw.commands.whitelist=*
 
 #server
-server.0=master:2888:3888
+server.0=10.128.0.50:2888:3888
 server.1=poc-2:2888:3888
 server.2=poc-3:2888:3888
 EOF
 
-echo "0" >> /opt/zookeeper_data/myid    -->master
+echo "0" >> /opt/zookeeper_data/myid    -->10.128.0.50
 echo "1" >> /opt/zookeeper_data/myid    --> poc-2
 echo "2" >> /opt/zookeeper_data/myid    -->poc-3
 
@@ -522,16 +523,16 @@ sed -i '/offsets.topic.replication.factor=3/d' /opt/kafka/config/server.properti
 sed -i '/transaction.state.log.replication.factor=3/d' /opt/kafka/config/server.properties
 sed -i '/zookeeper.connect=/d' /opt/kafka/config/server.properties
 
-#config for master
+#config for 10.128.0.50
 
 cat >> /opt/kafka/config/server.properties << EOF
 broker.id=1
-listeners=PLAINTEXT://master:9092
+listeners=PLAINTEXT://10.128.0.50:9092
 log.dirs=/opt/kafka-data
 num.partitions=8
 offsets.topic.replication.factor=3
 transaction.state.log.replication.factor=3
-zookeeper.connect=master:2181,poc-2:2181,poc-3:2181/kafka
+zookeeper.connect=10.128.0.50:2181,poc-2:2181,poc-3:2181/kafka
 EOF
 
 # config  for poc-2
@@ -543,7 +544,7 @@ log.dirs=/opt/kafka-data
 num.partitions=8
 offsets.topic.replication.factor=3
 transaction.state.log.replication.factor=3
-zookeeper.connect=master:2181,poc-2:2181,poc-3:2181/kafka
+zookeeper.connect=10.128.0.50:2181,poc-2:2181,poc-3:2181/kafka
 EOF
 
 # config for poc-3
@@ -555,18 +556,18 @@ log.dirs=/opt/kafka-data
 num.partitions=8
 offsets.topic.replication.factor=2
 transaction.state.log.replication.factor=2
-zookeeper.connect=master:2181,poc-2:2181,poc-3:2181/kafka
+zookeeper.connect=10.128.0.50:2181,poc-2:2181,poc-3:2181/kafka
 EOF
 
 # nohup bin/zookeeper-server-start.sh  config/zookeeper.properties & > /dev/null 2>&1
 # nohup bin/kafka-server-start.sh config/server.properties & 
-# echo "stat" | nc master 2181   -->check stat
+# echo "stat" | nc 10.128.0.50 2181   -->check stat
 
-# bin/kafka-topics.sh --zookeeper master:2181,poc-2:2181,poc-3:2181/kafka --create --topic first_topic --replication-factor 3 --partitions 3
+# bin/kafka-topics.sh --zookeeper 10.128.0.50:2181,poc-2:2181,poc-3:2181/kafka --create --topic first_topic --replication-factor 3 --partitions 3
 
-# bin/kafka-console-producer.sh --broker-list master:9092,poc-2:9092,poc-3:9092 --topic first_topic
+# bin/kafka-console-producer.sh --broker-list 10.128.0.50:9092,poc-2:9092,poc-3:9092 --topic first_topic
 
-# bin/kafka-console-consumer.sh --bootstrap-server master:9092,poc-2:9092,poc-3:9092 --topic first_topic --from-beginning
+# bin/kafka-console-consumer.sh --bootstrap-server 10.128.0.50:9092,poc-2:9092,poc-3:9092 --topic first_topic --from-beginning
 
 
 
