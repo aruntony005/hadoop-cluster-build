@@ -47,11 +47,11 @@ EOF
 
 
 cat > .ssh/id_rsa.pub << EOF
-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC14Y4hzCySZzguUI5GnRK0A1odTQCf2X47in3PThFkISYiH2DjMvBcMjdyyvg3R2MeTjQVloOi0Xd4yNAGhPc2XDBQFRWaBMKpnvoHKC13XyqpoolnaMxSXHkpFB1b4ZxHqorVhGqwtEwW8Iaj72YTrkbDEj5cwJCIoC1H/o57JmzOJKcMBXRGcjZZkfTBtrffQ5YTtM66LbjS6HHsxccEO+FOkSW/LWvtV302927CxKKfMuHfpqHBfq3M2Y3Z0yNGaYnIdhQYBS3e7xZTQbP/cntOpXcDPRyyao3JYF96/1epHykUNJqrAslhH1oNJ8LdKeZCw7VgRkJ946Ocy+biXQea9DT3niV1QwO6VMUI73sLPcSOU7qI/A+mqOM+TxbeztYMbuqaBQPXkSAJ/5wEmFfXwJajd2U0Y/6bVbQ6TD+b9zD61MnvOjnrx/7EtrDyfyZhAExwF9UZwURTisYvpk2wjvFouYsTbhqDvCryq40o3ig7xnNRGmJTAlItlUs= home/aruntony005@master
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC14Y4hzCySZzguUI5GnRK0A1odTQCf2X47in3PThFkISYiH2DjMvBcMjdyyvg3R2MeTjQVloOi0Xd4yNAGhPc2XDBQFRWaBMKpnvoHKC13XyqpoolnaMxSXHkpFB1b4ZxHqorVhGqwtEwW8Iaj72YTrkbDEj5cwJCIoC1H/o57JmzOJKcMBXRGcjZZkfTBtrffQ5YTtM66LbjS6HHsxccEO+FOkSW/LWvtV302927CxKKfMuHfpqHBfq3M2Y3Z0yNGaYnIdhQYBS3e7xZTQbP/cntOpXcDPRyyao3JYF96/1epHykUNJqrAslhH1oNJ8LdKeZCw7VgRkJ946Ocy+biXQea9DT3niV1QwO6VMUI73sLPcSOU7qI/A+mqOM+TxbeztYMbuqaBQPXkSAJ/5wEmFfXwJajd2U0Y/6bVbQ6TD+b9zD61MnvOjnrx/7EtrDyfyZhAExwF9UZwURTisYvpk2wjvFouYsTbhqDvCryq40o3ig7xnNRGmJTAlItlUs= home/hdfs@master
 EOF
 
 cat > .ssh/authorized_keys << EOF
-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC14Y4hzCySZzguUI5GnRK0A1odTQCf2X47in3PThFkISYiH2DjMvBcMjdyyvg3R2MeTjQVloOi0Xd4yNAGhPc2XDBQFRWaBMKpnvoHKC13XyqpoolnaMxSXHkpFB1b4ZxHqorVhGqwtEwW8Iaj72YTrkbDEj5cwJCIoC1H/o57JmzOJKcMBXRGcjZZkfTBtrffQ5YTtM66LbjS6HHsxccEO+FOkSW/LWvtV302927CxKKfMuHfpqHBfq3M2Y3Z0yNGaYnIdhQYBS3e7xZTQbP/cntOpXcDPRyyao3JYF96/1epHykUNJqrAslhH1oNJ8LdKeZCw7VgRkJ946Ocy+biXQea9DT3niV1QwO6VMUI73sLPcSOU7qI/A+mqOM+TxbeztYMbuqaBQPXkSAJ/5wEmFfXwJajd2U0Y/6bVbQ6TD+b9zD61MnvOjnrx/7EtrDyfyZhAExwF9UZwURTisYvpk2wjvFouYsTbhqDvCryq40o3ig7xnNRGmJTAlItlUs= home/aruntony005@master
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC14Y4hzCySZzguUI5GnRK0A1odTQCf2X47in3PThFkISYiH2DjMvBcMjdyyvg3R2MeTjQVloOi0Xd4yNAGhPc2XDBQFRWaBMKpnvoHKC13XyqpoolnaMxSXHkpFB1b4ZxHqorVhGqwtEwW8Iaj72YTrkbDEj5cwJCIoC1H/o57JmzOJKcMBXRGcjZZkfTBtrffQ5YTtM66LbjS6HHsxccEO+FOkSW/LWvtV302927CxKKfMuHfpqHBfq3M2Y3Z0yNGaYnIdhQYBS3e7xZTQbP/cntOpXcDPRyyao3JYF96/1epHykUNJqrAslhH1oNJ8LdKeZCw7VgRkJ946Ocy+biXQea9DT3niV1QwO6VMUI73sLPcSOU7qI/A+mqOM+TxbeztYMbuqaBQPXkSAJ/5wEmFfXwJajd2U0Y/6bVbQ6TD+b9zD61MnvOjnrx/7EtrDyfyZhAExwF9UZwURTisYvpk2wjvFouYsTbhqDvCryq40o3ig7xnNRGmJTAlItlUs= home/hdfs@master
 EOF
 
 sudo chmod 700 .ssh
@@ -68,7 +68,7 @@ sudo systemctl restart sshd
 sudo yum install java-1.8.0-openjdk-devel wget -y
 wget https://downloads.apache.org/hadoop/common/hadoop-3.2.2/hadoop-3.2.2.tar.gz
 
-sudo chown aruntony005:aruntony005 hadoop-3.2.2.tar.gz
+sudo chown hdfs:hdfs hadoop-3.2.2.tar.gz
 tar -xvf hadoop-3.2.2.tar.gz
 sudo mv hadoop-3.2.2 /opt/hadoop
 
@@ -77,11 +77,11 @@ export PATH=\$PATH:/opt/hadoop/bin:/opt/hadoop/sbin:/usr/local/sbin:/usr/local/b
 export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.292.b10-1.el8_4.x86_64/jre
 export HADOOP_HOME=/opt/hadoop
 export PATH=\$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin:/bin:/sbin
-export HDFS_NAMENODE_USER="aruntony005"
-export HDFS_DATANODE_USER="aruntony005"
-export HDFS_SECONDARYNAMENODE_USER="aruntony005"
-export YARN_RESOURCEMANAGER_USER="aruntony005"
-export YARN_NODEMANAGER_USER="aruntony005"
+export HDFS_NAMENODE_USER="hdfs"
+export HDFS_DATANODE_USER="hdfs"
+export HDFS_SECONDARYNAMENODE_USER="hdfs"
+export YARN_RESOURCEMANAGER_USER="hdfs"
+export YARN_NODEMANAGER_USER="hdfs"
 EOF
 
 cat >> .bashrc << EOF
@@ -212,7 +212,7 @@ EOF
 
 
 # echo -e "worker1\nworker2" >> /opt/hadoop/etc/hadoop/workers
-sudo chown -R aruntony005:aruntony005 /opt
+sudo chown -R hdfs:hdfs /opt
 =================================================
 
 # Only on 10.128.0.50
