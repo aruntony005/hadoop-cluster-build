@@ -1,6 +1,12 @@
 ---
 - block:
   - name: Create user for hadoop
+    group:
+      name: hdfs
+      state: present
+    become: yes
+
+  - name: Create user for hadoop
     user:
       name: hdfs
       group: hdfs
