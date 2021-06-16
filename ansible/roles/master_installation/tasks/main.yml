@@ -137,6 +137,9 @@
     blockinfile:
       path: /home/hdfs/.bash_profile
       insertafter: EOF
+      marker: "# {mark} ANSIBLE MANAGED BLOCK "
+      marker_begin: "hdfsBEGIN"
+      marker_end: "hdfsEND"
       block: |
            export PATH=$PATH:/opt/hadoop/bin:/opt/hadoop/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin
            export JAVA_HOME={{ java_home.stdout_lines[0] }}
@@ -154,6 +157,9 @@
     blockinfile:
       path: /home/hdfs/.bashrc
       insertafter: EOF
+      marker: "# {mark} ANSIBLE MANAGED BLOCK "
+      marker_begin: "hdfsBEGIN"
+      marker_end: "hdfsEND"
       block: |
            export PATH=$PATH:/opt/hadoop/bin:/opt/hadoop/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin
            export JAVA_HOME={{ java_home.stdout_lines[0] }}
@@ -359,6 +365,9 @@
     blockinfile:
       path: /home/hdfs/.bash_profile
       insertafter: EOF
+      marker: "# {mark} ANSIBLE MANAGED BLOCK "
+      marker_begin: "sparkBEGIN"
+      marker_end: "sparkEND"
       block: |
          export SPARK_HOME=/opt/spark
          export PATH=$PATH:$SPARK_HOME/bin
@@ -374,6 +383,9 @@
     blockinfile:
       path: /home/hdfs/.bashrc
       insertafter: EOF
+      marker: "# {mark} ANSIBLE MANAGED BLOCK "
+      marker_begin: "sparkBEGIN"
+      marker_end: "sparkEND"
       block: |
          export SPARK_HOME=/opt/spark
          export PATH=$PATH:$SPARK_HOME/bin
@@ -562,6 +574,9 @@
     blockinfile:
       path: /home/hdfs/.bashrc
       insertafter: EOF
+      marker: "# {mark} ANSIBLE MANAGED BLOCK "
+      marker_begin: "hiveBEGIN"
+      marker_end: "hiveEND"
       block: |
          export HIVE_HOME=/opt/hive
          export PATH=$PATH:$HIVE_HOME/bin
@@ -572,6 +587,9 @@
     blockinfile:
       path: /home/hdfs/.bash_profile
       insertafter: EOF
+      marker: "# {mark} ANSIBLE MANAGED BLOCK "
+      marker_begin: "hiveBEGIN"
+      marker_end: "hiveEND"
       block: |
          export HIVE_HOME=/opt/hive
          export PATH=$PATH:$HIVE_HOME/bin
