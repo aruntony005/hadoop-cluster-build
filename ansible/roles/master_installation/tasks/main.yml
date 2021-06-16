@@ -628,6 +628,7 @@
       marker: "<!-- {mark} ANSIBLE MANAGED BLOCK -->"
       marker_begin: "BEGIN"
       marker_end: "END"
+      create: yes
       block: |
          <?xml version="1.0"?>
          <configuration>
@@ -732,3 +733,4 @@
     shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && nohup hive --service metastore &> /home/hdfs/hive.log
     become_user: hdfs
     when: inventory_hostname in groups['hive']
+    
