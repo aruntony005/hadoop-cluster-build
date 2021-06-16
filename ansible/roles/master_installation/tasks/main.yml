@@ -1,6 +1,6 @@
 ---
 - block:
-  - name: Create user for hadoop
+  - name: Create group for hadoop
     group:
       name: hdfs
       state: present
@@ -507,7 +507,7 @@
 
   - name: Create user and password
     mysql_user:
-      login_host: "{{ hive_metastore[0] }}"
+      login_host: "localhost"
       login_user: root
       login_password: ''
       name: root
@@ -517,7 +517,7 @@
 
   - name: Create a mysql database for hive
     mysql_db:
-      login_host: "{{ hive_metastore[0] }}"
+      login_host: "localhost"
       login_user: root
       login_password: aruntonyml
       name: hive
@@ -526,7 +526,7 @@
 
   - name: Create database user and grant privileges
     mysql_user:
-      login_host: "{{ hive_metastore[0] }}"
+      login_host: "localhost"
       login_user: root
       login_password: 'aruntonyml'
       name: hiveuser
