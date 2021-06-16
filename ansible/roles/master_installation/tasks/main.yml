@@ -73,18 +73,18 @@
      - python3
     become: yes
 
-#  - name: Download the hadoop hive and spark tar file
-#    get_url:
-#      url: "{{ item }}"
-#      dest: /opt
-#    with_items:
-#      - https://downloads.apache.org/hadoop/common/hadoop-3.2.2/hadoop-3.2.2.tar.gz
-#      - https://downloads.apache.org/spark/spark-2.4.8/spark-2.4.8-bin-hadoop2.7.tgz
-#      - https://dev.mysql.com/get/mysql57-community-release-el7-9.noarch.rpm
-#      - https://downloads.apache.org/hive/hive-3.1.2/apache-hive-3.1.2-bin.tar.gz
-#      - https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.24-1.el8.noarch.rpm
-#    become: yes
-#    ignore_errors: yes
+  - name: Download the hadoop hive and spark tar file
+    get_url:
+      url: "{{ item }}"
+      dest: /opt
+    with_items:
+      - https://downloads.apache.org/hadoop/common/hadoop-3.2.2/hadoop-3.2.2.tar.gz
+      - https://downloads.apache.org/spark/spark-2.4.8/spark-2.4.8-bin-hadoop2.7.tgz
+      - https://dev.mysql.com/get/mysql57-community-release-el7-9.noarch.rpm
+      - https://downloads.apache.org/hive/hive-3.1.2/apache-hive-3.1.2-bin.tar.gz
+      - https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.24-1.el8.noarch.rpm
+    become: yes
+    ignore_errors: yes
 
   - name: Change the ownership of the packages
     file:
@@ -100,17 +100,17 @@
       - /opt
     become: yes
 
-#  - name: Unarchive the files
-#    unarchive:
-#      src: "{{ item }}"
-#      dest: /opt/
-#      owner: hdfs
-#      group: hdfs
-#    become: yes
-#    with_items: 
-#     - /opt/apache-hive-3.1.2-bin.tar.gz
-#     - /opt/hadoop-3.2.2.tar.gz
-#     - /opt/spark-2.4.8-bin-hadoop2.7.tgz
+  - name: Unarchive the files
+    unarchive:
+      src: "{{ item }}"
+      dest: /opt/
+      owner: hdfs
+      group: hdfs
+    become: yes
+    with_items: 
+     - /opt/apache-hive-3.1.2-bin.tar.gz
+     - /opt/hadoop-3.2.2.tar.gz
+     - /opt/spark-2.4.8-bin-hadoop2.7.tgz
 
   - name: Change the ownerships
     shell: chown -R hdfs:hdfs /opt
@@ -316,35 +316,35 @@
     shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile
     become_user: hdfs
 
-#  - name: Format namenode
-#    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && hdfs namenode -format
-#    become_user: hdfs
-#    when: inventory_hostname in groups['master']
-#    environment:
-#      PATH=$PATH:/opt/hadoop/bin:/opt/hadoop/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin
-#      JAVA_HOME={{ java_home.stdout_lines[0] }}
-#      HADOOP_HOME=/opt/hadoop
-#      PATH=$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin:/bin:/sbin
-#      HDFS_NAMENODE_USER="{{ user }}"
-#      HDFS_DATANODE_USER="{{ user }}"
-#      HDFS_SECONDARYNAMENODE_USER="{{ user }}"
-#      YARN_RESOURCEMANAGER_USER="{{ user }}"
-#      YARN_NODEMANAGER_USER="{{ user }}"
+  - name: Format namenode
+    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && hdfs namenode -format
+    become_user: hdfs
+    when: inventory_hostname in groups['master']
+    environment:
+      PATH=$PATH:/opt/hadoop/bin:/opt/hadoop/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin
+      JAVA_HOME={{ java_home.stdout_lines[0] }}
+      HADOOP_HOME=/opt/hadoop
+      PATH=$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin:/bin:/sbin
+      HDFS_NAMENODE_USER="{{ user }}"
+      HDFS_DATANODE_USER="{{ user }}"
+      HDFS_SECONDARYNAMENODE_USER="{{ user }}"
+      YARN_RESOURCEMANAGER_USER="{{ user }}"
+      YARN_NODEMANAGER_USER="{{ user }}"
 
-#  - name: Start the services
-#    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && start-all.sh
-#    become_user: hdfs
-#    when: inventory_hostname in groups['master']
-#    environment: 
-#      PATH=$PATH:/opt/hadoop/bin:/opt/hadoop/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin
-#      JAVA_HOME={{ java_home.stdout_lines[0] }}
-#      HADOOP_HOME=/opt/hadoop
-#      PATH=$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin:/bin:/sbin
-#      HDFS_NAMENODE_USER="{{ user }}"
-#      HDFS_DATANODE_USER="{{ user }}"
-#      HDFS_SECONDARYNAMENODE_USER="{{ user }}"
-#      YARN_RESOURCEMANAGER_USER="{{ user }}"
-#      YARN_NODEMANAGER_USER="{{ user }}"
+  - name: Start the services
+    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && start-all.sh
+    become_user: hdfs
+    when: inventory_hostname in groups['master']
+    environment: 
+      PATH=$PATH:/opt/hadoop/bin:/opt/hadoop/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin
+      JAVA_HOME={{ java_home.stdout_lines[0] }}
+      HADOOP_HOME=/opt/hadoop
+      PATH=$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin:/bin:/sbin
+      HDFS_NAMENODE_USER="{{ user }}"
+      HDFS_DATANODE_USER="{{ user }}"
+      HDFS_SECONDARYNAMENODE_USER="{{ user }}"
+      YARN_RESOURCEMANAGER_USER="{{ user }}"
+      YARN_NODEMANAGER_USER="{{ user }}"
 
 
 ############################## SPARK ########################################### 
@@ -450,9 +450,9 @@
     ignore_errors: yes
     when: inventory_hostname in groups['spark']
 
-#  - name: Start spark
-#    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && sh /opt/spark/sbin/start-all.sh
-#    become_user: hdfs
+  - name: Start spark
+    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && sh /opt/spark/sbin/start-all.sh
+    become_user: hdfs
 
 ############################## HIVE ########################################### 
 
@@ -501,7 +501,7 @@
 
   - name: Create user and password
     mysql_user:
-      login_host: 'localhost'
+      login_host: "{{ hive_metastore[0] }}"
       login_user: root
       login_password: ''
       name: root
@@ -511,7 +511,7 @@
 
   - name: Create a mysql database for hive
     mysql_db:
-      login_host: 'localhost'
+      login_host: "{{ hive_metastore[0] }}"
       login_user: root
       login_password: aruntonyml
       name: hive
@@ -520,7 +520,7 @@
 
   - name: Create database user and grant privileges
     mysql_user:
-      login_host: 'localhost'
+      login_host: "{{ hive_metastore[0] }}"
       login_user: root
       login_password: 'aruntonyml'
       name: hiveuser
@@ -609,7 +609,7 @@
          <configuration>
              <property>
                  <name>javax.jdo.option.ConnectionURL</name>
-                 <value>jdbc:mysql://{{hive_metastore}}:3306/hive</value>
+                 <value>jdbc:mysql://{{ hive_metastore[0] }}:3306/hive</value>
                  <description>JDBC connection string used by Hive Metastore</description>
              </property>
              <property>
@@ -637,7 +637,7 @@
            </property>
            <property>
              <name>hive.metastore.uris</name>
-             <value>thrift://{{hive_metastore}}:9083</value>
+             <value>thrift://{{ hive_metastore[0] }}:9083</value>
              <description>URI for client to contact metastore server</description>
            </property>
          </configuration>
