@@ -3,7 +3,7 @@
   - name: Create user for hadoop
     user:
       name: hdfs
-      group: root
+      group: hdfs
     become: yes
 
   - set_fact:
@@ -37,13 +37,21 @@
       insertafter: EOF
     become: yes
 
+  - name: create dir
+    shell: mkdir /home/hdfs/.ssh && chown -R hdfs:hdfs /home/hdfs/.ssh
+    become: yes
+    ignore_errors: yes
+
   - name: Copy the ssh folder
     copy:
-      src: /root/.ssh
-      dest: /home/hdfs/.ssh
+      src: /root/.ssh/{{item}}
+      dest: /home/hdfs/.ssh/{{item}}
       owner: hdfs
       group: hdfs
       mode: '0700'
+    with_items:
+     - authorized_keys
+     - id_rsa
     become: yes
 
   - name: Change the permissions of the keys
@@ -62,19 +70,21 @@
     with_items:
      - java-1.8.0-openjdk-devel
      - wget
+     - python3
     become: yes
 
-  - name: Download the hadoop, hive and spark tar file
-    get_url:
-      url: "{{ item }}"
-      dest: /opt
-    with-items:
-      - https://downloads.apache.org/hadoop/common/hadoop-3.2.2/hadoop-3.2.2.tar.gz
-      - https://downloads.apache.org/spark/spark-2.4.8/spark-2.4.8-bin-hadoop2.7.tgz
-      - https://dev.mysql.com/get/mysql57-community-release-el7-9.noarch.rpm
-      - https://downloads.apache.org/hive/hive-3.1.2/apache-hive-3.1.2-bin.tar.gz
-      - https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.24-1.el8.noarch.rpm
-    become_user: hdfs
+#  - name: Download the hadoop hive and spark tar file
+#    get_url:
+#      url: "{{ item }}"
+#      dest: /opt
+#    with_items:
+#      - https://downloads.apache.org/hadoop/common/hadoop-3.2.2/hadoop-3.2.2.tar.gz
+#      - https://downloads.apache.org/spark/spark-2.4.8/spark-2.4.8-bin-hadoop2.7.tgz
+#      - https://dev.mysql.com/get/mysql57-community-release-el7-9.noarch.rpm
+#      - https://downloads.apache.org/hive/hive-3.1.2/apache-hive-3.1.2-bin.tar.gz
+#      - https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.24-1.el8.noarch.rpm
+#    become: yes
+#    ignore_errors: yes
 
   - name: Change the ownership of the packages
     file:
@@ -82,22 +92,36 @@
       owner: hdfs
       group: hdfs
     with_items:
-      - https://downloads.apache.org/hadoop/common/hadoop-3.2.2/hadoop-3.2.2.tar.gz
-      - https://apachemirror.wuchna.com/spark/spark-2.4.8/spark-2.4.8-bin-hadoop2.7.tgz
-      - https://dev.mysql.com/get/mysql57-community-release-el7-9.noarch.rpm
-      - https://downloads.apache.org/hive/hive-3.1.2/apache-hive-3.1.2-bin.tar.gz
-      - https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.24-1.el8.noarch.rpm
+      - /opt/hadoop-3.2.2.tar.gz
+      - /opt/spark-2.4.8-bin-hadoop2.7.tgz
+      - /opt/mysql57-community-release-el7-9.noarch.rpm
+      - /opt/apache-hive-3.1.2-bin.tar.gz
+      - /opt/mysql-connector-java-8.0.24-1.el8.noarch.rpm
+      - /opt
     become: yes
 
-  - name: Unarchive the files
-    unarchive:
-      src: "{{ item.key }}"
-      dest: "{{ item.value }}"
-      owner: hdfs
-      group: hdfs
+#  - name: Unarchive the files
+#    unarchive:
+#      src: "{{ item }}"
+#      dest: /opt/
+#      owner: hdfs
+#      group: hdfs
+#    become: yes
+#    with_items: 
+#     - /opt/apache-hive-3.1.2-bin.tar.gz
+#     - /opt/hadoop-3.2.2.tar.gz
+#     - /opt/spark-2.4.8-bin-hadoop2.7.tgz
+
+  - name: Change the ownerships
+    shell: chown -R hdfs:hdfs /opt
+    become: yes
+
+  - name: Rename the folders
+    shell: mv {{item.key}} {{item.value}}
     with_dict:
-      - { "/opt/hadoop-3.2.2.tar.gz" : "/opt/hadoop", "/opt/spark-2.4.8-bin-hadoop2.7.tgz" : "/opt/spark", "/opt/apache-hive-3.1.2-bin.tar.gz" : "/opt/hive" }
+      - { "/opt/hadoop-3.2.2" : "/opt/hadoop", "/opt/spark-2.4.8-bin-hadoop2.7" : "/opt/spark", "/opt/apache-hive-3.1.2-bin" : "/opt/hive" }
     become_user: hdfs
+    ignore_errors: yes
 
   - name: Get the java home
     shell: ls -ltr /etc/alternatives/java | sed 's/\/bin\/java//g;s/ //g' | awk -F'>' '{print $2}'
@@ -154,12 +178,15 @@
       - "/opt/hadoop/etc/hadoop/hdfs-site.xml"
       - "/opt/hadoop/etc/hadoop/mapred-site.xml"
       - "/opt/hadoop/etc/hadoop/yarn-site.xml"
-    become_user: hdfs
+    become: yes
 
   - name: Add content to core-site.xml
     blockinfile:
       path: /opt/hadoop/etc/hadoop/core-site.xml
       insertafter: EOF
+      marker: "<!-- {mark} ANSIBLE MANAGED BLOCK -->"
+      marker_begin: "BEGIN"
+      marker_end: "END"
       block: |
           <configuration>
                  <property>
@@ -173,6 +200,9 @@
     blockinfile:
       path: /opt/hadoop/etc/hadoop/hdfs-site.xml
       insertafter: EOF
+      marker: "<!-- {mark} ANSIBLE MANAGED BLOCK -->"
+      marker_begin: "BEGIN"
+      marker_end: "END"
       block: |
           <configuration>
               <property>
@@ -194,6 +224,9 @@
     blockinfile:
       path: /opt/hadoop/etc/hadoop/mapred-site.xml
       insertafter: EOF
+      marker: "<!-- {mark} ANSIBLE MANAGED BLOCK -->"
+      marker_begin: "BEGIN"
+      marker_end: "END"
       block: |
           <configuration>
               <property>
@@ -231,6 +264,9 @@
     blockinfile:
       path: /opt/hadoop/etc/hadoop/yarn-site.xml
       insertafter: EOF
+      marker: "<!-- {mark} ANSIBLE MANAGED BLOCK -->"
+      marker_begin: "BEGIN"
+      marker_end: "END"
       block: |
           <configuration>
               <property>
@@ -276,15 +312,40 @@
     ignore_errors: yes
     when: inventory_hostname in groups['master']
 
-  - name: Format namenode
-    shell: hdfs namenode -format
+  - name: source the bash files
+    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile
     become_user: hdfs
-    when: inventory_hostname in groups['master']
 
-  - name: Start the services
-    shell: start-all.sh
-    become_user: hdfs
-    when: inventory_hostname in groups['master']
+#  - name: Format namenode
+#    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && hdfs namenode -format
+#    become_user: hdfs
+#    when: inventory_hostname in groups['master']
+#    environment:
+#      PATH=$PATH:/opt/hadoop/bin:/opt/hadoop/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin
+#      JAVA_HOME={{ java_home.stdout_lines[0] }}
+#      HADOOP_HOME=/opt/hadoop
+#      PATH=$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin:/bin:/sbin
+#      HDFS_NAMENODE_USER="{{ user }}"
+#      HDFS_DATANODE_USER="{{ user }}"
+#      HDFS_SECONDARYNAMENODE_USER="{{ user }}"
+#      YARN_RESOURCEMANAGER_USER="{{ user }}"
+#      YARN_NODEMANAGER_USER="{{ user }}"
+
+#  - name: Start the services
+#    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && start-all.sh
+#    become_user: hdfs
+#    when: inventory_hostname in groups['master']
+#    environment: 
+#      PATH=$PATH:/opt/hadoop/bin:/opt/hadoop/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin
+#      JAVA_HOME={{ java_home.stdout_lines[0] }}
+#      HADOOP_HOME=/opt/hadoop
+#      PATH=$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin:/bin:/sbin
+#      HDFS_NAMENODE_USER="{{ user }}"
+#      HDFS_DATANODE_USER="{{ user }}"
+#      HDFS_SECONDARYNAMENODE_USER="{{ user }}"
+#      YARN_RESOURCEMANAGER_USER="{{ user }}"
+#      YARN_NODEMANAGER_USER="{{ user }}"
+
 
 ############################## SPARK ########################################### 
 
@@ -389,6 +450,9 @@
     ignore_errors: yes
     when: inventory_hostname in groups['spark']
 
+#  - name: Start spark
+#    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && sh /opt/spark/sbin/start-all.sh
+#    become_user: hdfs
 
 ############################## HIVE ########################################### 
 
@@ -431,6 +495,10 @@
     become: yes
     when: (inventory_hostname in groups['hive_metastore']) and (metastore == "mysql")
 
+  - name: Install PyMySQL
+    shell: pip3 install PyMySQL
+    become: yes
+
   - name: Create user and password
     mysql_user:
       login_host: 'localhost'
@@ -469,7 +537,7 @@
     when: (inventory_hostname in groups['hive_metastore']) and (metastore == "mysql")
 
   - name: Create hdfs directories
-    shell: hdfs dfs -mkdir -p "{{ item }}"
+    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && hdfs dfs -mkdir -p "{{ item }}"
     with_items: 
       - /user/hive/warehouse
       - /tmp
@@ -477,7 +545,7 @@
     when: inventory_hostname in groups['master']
 
   - name: Provide permissions for hdfs directories
-    shell: hdfs dfs -chmod -R 777  "{{ item }}"
+    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && hdfs dfs -chmod -R 777  "{{ item }}"
     with_items: 
       - /user/hive/warehouse
       - /tmp
@@ -533,6 +601,9 @@
     blockinfile:
       path: /opt/hive/conf/hive-site.xml
       insertafter: EOF
+      marker: "<!-- {mark} ANSIBLE MANAGED BLOCK -->"
+      marker_begin: "BEGIN"
+      marker_end: "END"
       block: |
          <?xml version="1.0"?>
          <configuration>
@@ -611,12 +682,12 @@
     ignore_errors: yes
 
   - name: Initialize the metastore schema for hive
-    shell: schematool -dbType mysql -initSchema
+    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && schematool -dbType mysql -initSchema
     become_user: hdfs
     when: inventory_hostname in groups['hive']
 
   - name: Get the the metastore status
-    shell: schematool -dbType mysql -info
+    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && schematool -dbType mysql -info
     become_user: hdfs
     when: inventory_hostname in groups['hive']
 

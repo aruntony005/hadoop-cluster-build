@@ -1,5 +1,5 @@
 - name: kubernetes cluster build
-  hosts: localhost
+  hosts: master,worker,hive_metastore,spark,hive
   gather_facts: yes
   become: yes
 
