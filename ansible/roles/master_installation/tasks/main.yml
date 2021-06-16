@@ -467,6 +467,8 @@
     become_user: hdfs
     ignore_errors: yes
     when: inventory_hostname in groups['spark']
+    
+  - shell: ln -s /usr/bin/python3 /usr/bin/python
 
   - name: Start spark
     shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && sh /opt/spark/sbin/start-all.sh
@@ -668,6 +670,8 @@
          </configuration>
     become_user: hdfs
     when: inventory_hostname in groups['hive']
+    
+  - shell: sed -i '1d' /opt/hive/conf/hive-site.xml
 
   - name: Copy the mysql connector jar file
     copy:
