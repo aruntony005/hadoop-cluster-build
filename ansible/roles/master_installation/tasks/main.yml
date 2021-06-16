@@ -472,7 +472,11 @@
     ignore_errors: yes
 
   - name: Start spark
-    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && hdfs dfs -mkdir -p /spark/logs && sh /opt/spark/sbin/start-all.sh
+    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && sh /opt/spark/sbin/start-all.sh
+    become_user: hdfs
+    
+  - name: Create log directory
+    shell: hdfs dfs -mkdir -p /spark/logs
     become_user: hdfs
 
 ############################## HIVE ########################################### 
