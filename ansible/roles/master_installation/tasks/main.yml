@@ -681,6 +681,19 @@
     become_user: hdfs
     ignore_errors: yes
 
+  - name: Download mariadb jar files
+    get_url:
+      url: "{{ item }}"
+      dest: /opt/hive/lib/
+      owner: hdfs
+      group: hdfs
+    with_items:
+      - https://downloads.mariadb.com/Connectors/java/connector-java-2.5.4/mariadb-java-client-2.5.4-sources.jar
+      - https://downloads.mariadb.com/Connectors/java/connector-java-2.5.4/mariadb-java-client-2.5.4-javadoc.jar
+      - https://downloads.mariadb.com/Connectors/java/connector-java-2.5.4/mariadb-java-client-2.5.4.jar
+    become_user: hdfs
+    when: (inventory_hostname in groups['hive_metastore']) and (metastore == "mariadb")
+    
   - name: Initialize the metastore schema for hive
     shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && schematool -dbType mysql -initSchema
     become_user: hdfs
@@ -692,6 +705,6 @@
     when: inventory_hostname in groups['hive']
 
   - name: Run the hive metastore service
-    shell: nohup hive --service metastore &> /home/hdfs/hive.log
+    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && nohup hive --service metastore &> /home/hdfs/hive.log
     become_user: hdfs
     when: inventory_hostname in groups['hive']
