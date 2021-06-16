@@ -325,7 +325,7 @@
     when: inventory_hostname in groups['master']
 
   - name: source the bash files
-    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile
+    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && hdfs dfs -mkdir -p /spark/logs
     become_user: hdfs
 
   - name: Format namenode
