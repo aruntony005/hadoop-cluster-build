@@ -325,7 +325,7 @@
     when: inventory_hostname in groups['master']
 
   - name: source the bash files
-    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && hdfs dfs -mkdir -p /spark/logs
+    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile
     become_user: hdfs
 
   - name: Format namenode
@@ -472,7 +472,7 @@
     ignore_errors: yes
 
   - name: Start spark
-    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && sh /opt/spark/sbin/start-all.sh
+    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile && hdfs dfs -mkdir -p /spark/logs && sh /opt/spark/sbin/start-all.sh
     become_user: hdfs
 
 ############################## HIVE ########################################### 
