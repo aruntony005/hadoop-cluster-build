@@ -19,6 +19,16 @@
      worker: "{{ groups.worker }}"
     ignore_errors: yes
 
+  - name: Get the metastore name
+    set_fact:
+     metastore: "mysql"
+    ignore_errors: yes
+
+  - name: Get the metastore IP details
+    set_fact:
+     hive_metastore: "{{ groups.hive_metastore }}"
+    ignore_errors: yes
+
   - name: Add sudo permission to the user
     lineinfile:
       dest: /etc/sudoers
@@ -60,7 +70,7 @@
       dest: /opt
     with-items:
       - https://downloads.apache.org/hadoop/common/hadoop-3.2.2/hadoop-3.2.2.tar.gz
-      - https://apachemirror.wuchna.com/spark/spark-2.4.8/spark-2.4.8-bin-hadoop2.7.tgz
+      - https://downloads.apache.org/spark/spark-2.4.8/spark-2.4.8-bin-hadoop2.7.tgz
       - https://dev.mysql.com/get/mysql57-community-release-el7-9.noarch.rpm
       - https://downloads.apache.org/hive/hive-3.1.2/apache-hive-3.1.2-bin.tar.gz
       - https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.24-1.el8.noarch.rpm
@@ -86,7 +96,8 @@
       owner: hdfs
       group: hdfs
     with_dict:
-      - { "/opt/hadoop-3.2.2.tar.gz" : "/opt/hadoop", "/opt/spark-2.4.8-bin-hadoop2.7.tgz" : "/opt/spark", "/opt/apache-hive-3.1.2-bin.tar.gz" : "hive" }
+      - { "/opt/hadoop-3.2.2.tar.gz" : "/opt/hadoop", "/opt/spark-2.4.8-bin-hadoop2.7.tgz" : "/opt/spark", "/opt/apache-hive-3.1.2-bin.tar.gz" : "/opt/hive" }
+    become_user: hdfs
 
   - name: Get the java home
     shell: ls -ltr /etc/alternatives/java | sed 's/\/bin\/java//g;s/ //g' | awk -F'>' '{print $2}'
@@ -129,10 +140,11 @@
       block: |
           export JAVA_HOME={{ java_home.stdout_lines[0] }}
           export HADOOP_HOME=/opt/hadoop
+    become_user: hdfs
 
   - name: Remove lines in the xml files
     lineinfile:
-      path: 
+      path: "{{ item }}"
       regexp: 'configuration'
       state: absent
       owner: hdfs
@@ -142,6 +154,7 @@
       - "/opt/hadoop/etc/hadoop/hdfs-site.xml"
       - "/opt/hadoop/etc/hadoop/mapred-site.xml"
       - "/opt/hadoop/etc/hadoop/yarn-site.xml"
+    become_user: hdfs
 
   - name: Add content to core-site.xml
     blockinfile:
@@ -154,6 +167,7 @@
                       <value>hdfs://{{ master[0] }}:9000</value>
                   </property>
           </configuration>
+    become_user: hdfs
 
   - name: Add content to hdfs-site.xml
     blockinfile:
@@ -174,6 +188,7 @@
                       <value>2</value>
               </property>
           </configuration>
+    become_user: hdfs
 
   - name: Add content to mapred-site.xml
     blockinfile:
@@ -210,6 +225,7 @@
                   <value>256</value>
           </property>
           </configuration>
+    become_user: hdfs
 
   - name: Add content to yarn-site.xml
     blockinfile:
@@ -246,31 +262,365 @@
                   <value>false</value>
           </property>
           </configuration>
+    become_user: hdfs
 
   - name: add the worker nodes
     lineinfile:
       dest: /opt/hadoop/etc/hadoop/workers
       state: present
-      line: "{{ worker }}"
+      line: "{{ item }}"
       insertafter: EOF
+      create: yes
+    with_items: "{{ worker }}"
     become_user: hdfs
+    ignore_errors: yes
+    when: inventory_hostname in groups['master']
 
   - name: Format namenode
     shell: hdfs namenode -format
+    become_user: hdfs
+    when: inventory_hostname in groups['master']
 
   - name: Start the services
     shell: start-all.sh
+    become_user: hdfs
+    when: inventory_hostname in groups['master']
+
+############################## SPARK ########################################### 
+
+  - name: Add content to bash_profile
+    blockinfile:
+      path: /home/hdfs/.bash_profile
+      insertafter: EOF
+      block: |
+         export SPARK_HOME=/opt/spark
+         export PATH=$PATH:$SPARK_HOME/bin
+         export LD_LIBRARY_PATH=/opt/hadoop/lib/native
+         export HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop
+         export PATH=$PATH:$HADOOP_HOME/etc/hadoop:$HADOOP_HOME/lib/native
+         export PYTHONPATH=$SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-0.10.7-src.zip:$PYTHONPATH
+         export PYSPARK_PYTHON=python3
+    become_user: hdfs
+    when: inventory_hostname in groups['spark']
+
+  - name: Add content to bashrc
+    blockinfile:
+      path: /home/hdfs/.bashrc
+      insertafter: EOF
+      block: |
+         export SPARK_HOME=/opt/spark
+         export PATH=$PATH:$SPARK_HOME/bin
+    become_user: hdfs
+    when: inventory_hostname in groups['spark']
+
+  - name: source the bash files
+    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile
+    become_user: hdfs
+    when: inventory_hostname in groups['spark']
+
+  - name: Copy the spark conf file
+    copy:
+      src: /opt/spark/conf/spark-defaults.conf.template
+      dest: /opt/spark/conf/spark-defaults.conf
+      force: yes
+      owner: hdfs
+      group: hdfs
+    become_user: hdfs
+    when: inventory_hostname in groups['spark']
+
+  - name: Add content to spark conf
+    blockinfile:
+      path: /opt/spark/conf/spark-defaults.conf
+      insertafter: EOF
+      block: |
+         spark.10.128.0.50    yarn
+         spark.driver.memory    512m
+         spark.yarn.am.memory    512m
+         spark.executor.memory          512m
+         spark.eventLog.enabled  true
+         spark.eventLog.dir hdfs://{{ master[0] }}:9000/spark/logs
+         spark.history.provider            org.apache.spark.deploy.history.FsHistoryProvider
+         spark.history.fs.logDirectory     hdfs://{{ master[0] }}:9000/spark/logs
+         spark.history.fs.update.interval  10s
+         spark.history.ui.port             18080
+    become_user: hdfs
+    when: inventory_hostname in groups['spark']
+
+  - name: Copy the spark env file
+    copy:
+      src: /opt/spark/conf/spark-env.sh.template
+      dest: /opt/spark/conf/spark-env.sh
+      force: yes
+      owner: hdfs
+      group: hdfs
+    become_user: hdfs
+    when: inventory_hostname in groups['spark']
+
+  - name: Add content to spark-env.sh
+    blockinfile:
+      path: /opt/spark/conf/spark-env.sh
+      insertafter: EOF
+      block: |
+          export JAVA_HOME={{ java_home.stdout_lines[0] }}
+          export SPARK_MASTER_HOST={{ master[0] }}
+    become_user: hdfs
+    when: inventory_hostname in groups['spark']
+
+  - name: add the slave nodes
+    lineinfile:
+      dest: /opt/spark/conf/slaves
+      state: present
+      line: "{{ item }}"
+      insertafter: EOF
+      create: yes
+    with_items: "{{ master[0] }}"
+    become_user: hdfs
+    ignore_errors: yes
+    when: inventory_hostname in groups['spark']
+
+  - name: add the slave nodes
+    lineinfile:
+      dest: /opt/spark/conf/slaves
+      state: present
+      line: "{{ item }}"
+      insertafter: EOF
+    with_items: "{{ worker }}"
+    become_user: hdfs
+    ignore_errors: yes
+    when: inventory_hostname in groups['spark']
 
 
+############################## HIVE ########################################### 
 
+  - name: Add mysql repo
+    shell: rpm -ivh /opt/mysql57-community-release-el7-9.noarch.rpm
+    become: yes
+    ignore_errors: yes
+    when: (inventory_hostname in groups['hive_metastore']) and (metastore == "mysql")
 
+  - name: Install mysql server
+    yum:
+      name: mysql-server
+      state: present
+    become: yes
+    when: (inventory_hostname in groups['hive_metastore']) and (metastore == "mysql")
 
+  - name: Install mariadb server
+    yum:
+      name: "{{ item }}"
+      state: present
+    become: yes
+    with_items:
+     - mariadb-server
+     - mysql-connector-java.noarch
+    when: (inventory_hostname in groups['hive_metastore']) and (metastore == "mariadb")
 
+  - name: Start mariadb service
+    systemd:
+      name: mariadb
+      state: started
+      enabled: yes
+    become: yes
+    when: (inventory_hostname in groups['hive_metastore']) and (metastore == "mariadb")
 
+  - name: Start mysql service
+    systemd:
+      name: mysqld
+      state: started
+      enabled: yes
+    become: yes
+    when: (inventory_hostname in groups['hive_metastore']) and (metastore == "mysql")
 
+  - name: Create user and password
+    mysql_user:
+      login_host: 'localhost'
+      login_user: root
+      login_password: ''
+      name: root
+      password: aruntonyml
+      state: present
+    when: inventory_hostname in groups['hive_metastore']
 
+  - name: Create a mysql database for hive
+    mysql_db:
+      login_host: 'localhost'
+      login_user: root
+      login_password: aruntonyml
+      name: hive
+    become: yes
+    when: inventory_hostname in groups['hive_metastore']
 
+  - name: Create database user and grant privileges
+    mysql_user:
+      login_host: 'localhost'
+      login_user: root
+      login_password: 'aruntonyml'
+      name: hiveuser
+      password: hivepassword
+      priv: '*.*:ALL'
+      state: present
+    become_user: hdfs
+    when: inventory_hostname in groups['hive_metastore']
 
+  - name: Add mysql connector to the repo
+    shell: rpm -ivh /opt/mysql-connector-java-8.0.24-1.el8.noarch.rpm
+    become: yes
+    ignore_errors: yes
+    when: (inventory_hostname in groups['hive_metastore']) and (metastore == "mysql")
 
+  - name: Create hdfs directories
+    shell: hdfs dfs -mkdir -p "{{ item }}"
+    with_items: 
+      - /user/hive/warehouse
+      - /tmp
+    become_user: hdfs
+    when: inventory_hostname in groups['master']
 
+  - name: Provide permissions for hdfs directories
+    shell: hdfs dfs -chmod -R 777  "{{ item }}"
+    with_items: 
+      - /user/hive/warehouse
+      - /tmp
+    become_user: hdfs
+    when: inventory_hostname in groups['master']
 
+  - name: Add content to bashrc
+    blockinfile:
+      path: /home/hdfs/.bashrc
+      insertafter: EOF
+      block: |
+         export HIVE_HOME=/opt/hive
+         export PATH=$PATH:$HIVE_HOME/bin
+    become_user: hdfs
+    when: inventory_hostname in groups['hive']
+
+  - name: Add content to bash_profile
+    blockinfile:
+      path: /home/hdfs/.bash_profile
+      insertafter: EOF
+      block: |
+         export HIVE_HOME=/opt/hive
+         export PATH=$PATH:$HIVE_HOME/bin
+    become_user: hdfs
+    when: inventory_hostname in groups['hive']
+
+  - name: source the bash files
+    shell: source /home/hdfs/.bashrc && source /home/hdfs/.bash_profile
+    become_user: hdfs
+    when: inventory_hostname in groups['hive']
+
+  - name: Copy the hive env file
+    copy:
+      src: /opt/hive/conf/hive-env.sh.template
+      dest: /opt/hive/conf/hive-env.sh
+      force: yes
+      owner: hdfs
+      group: hdfs
+    become_user: hdfs
+    when: inventory_hostname in groups['hive']
+
+  - name: Add content to hive-env.sh
+    blockinfile:
+      path: /opt/hive/conf/hive-env.sh
+      insertafter: EOF
+      block: |
+          export HADOOP_HOME=/opt/hadoop
+          export HIVE_CONF_DIR=/opt/hive/conf
+    become_user: hdfs
+    when: inventory_hostname in groups['hive']
+
+  - name: Add content to hive-site.xml
+    blockinfile:
+      path: /opt/hive/conf/hive-site.xml
+      insertafter: EOF
+      block: |
+         <?xml version="1.0"?>
+         <configuration>
+             <property>
+                 <name>javax.jdo.option.ConnectionURL</name>
+                 <value>jdbc:mysql://{{hive_metastore}}:3306/hive</value>
+                 <description>JDBC connection string used by Hive Metastore</description>
+             </property>
+             <property>
+                 <name>javax.jdo.option.ConnectionDriverName</name>
+                 <value>com.mysql.jdbc.Driver</value>
+                 <description>JDBC Driver class</description>
+             </property>
+             <property>
+                 <name>javax.jdo.option.ConnectionUserName</name>
+                 <value>hiveuser</value>
+                 <description>Metastore database user name</description>
+             </property>
+             <property>
+                 <name>javax.jdo.option.ConnectionPassword</name>
+                 <value>hivepassword</value>
+                 <description>Metastore database password</description>
+             </property>
+          <property>
+             <name>datanucleus.connectionPoolingType</name>
+             <value>dbcp</value>
+           </property>
+          <property>
+             <name>hive.metastore.schema.verification</name>
+             <value>true</value>
+           </property>
+           <property>
+             <name>hive.metastore.uris</name>
+             <value>thrift://{{hive_metastore}}:9083</value>
+             <description>URI for client to contact metastore server</description>
+           </property>
+         </configuration>
+    become_user: hdfs
+    when: inventory_hostname in groups['hive']
+
+  - name: Copy the mysql connector jar file
+    copy:
+      src: /usr/share/java/mysql-connector-java.jar
+      dest: /opt/hive/lib/
+      force: yes
+      owner: hdfs
+      group: hdfs
+    become_user: hdfs
+    when: inventory_hostname in groups['hive']
+
+  - name: Copy the guava-27.0-jre jar file
+    copy:
+      src: /opt/hadoop/share/hadoop/common/lib/guava-27.0-jre.jar
+      dest: /opt/hive/lib/
+      force: yes
+      owner: hdfs
+      group: hdfs
+    become_user: hdfs
+    when: inventory_hostname in groups['hive']
+
+  - name: Remove guava-19.0.jar
+    file:
+      path: /opt/hive/lib/guava-19.0.jar
+      state: absent
+    become_user: hdfs
+    when: inventory_hostname in groups['hive']
+
+  - name: Copy hive xml file to spark to integrate spark and hive
+    copy:
+      src: /opt/hive/conf/hive-site.xml
+      dest: /opt/spark/conf/
+      force: yes
+      owner: hdfs
+      group: hdfs
+    become_user: hdfs
+    ignore_errors: yes
+
+  - name: Initialize the metastore schema for hive
+    shell: schematool -dbType mysql -initSchema
+    become_user: hdfs
+    when: inventory_hostname in groups['hive']
+
+  - name: Get the the metastore status
+    shell: schematool -dbType mysql -info
+    become_user: hdfs
+    when: inventory_hostname in groups['hive']
+
+  - name: Run the hive metastore service
+    shell: nohup hive --service metastore &> /home/hdfs/hive.log
+    become_user: hdfs
+    when: inventory_hostname in groups['hive']
