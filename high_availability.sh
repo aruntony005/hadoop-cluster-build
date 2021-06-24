@@ -10,7 +10,9 @@
 wget https://archive.apache.org/dist/zookeeper/zookeeper-3.4.6/zookeeper-3.4.6.tar.gz
 mv zookeeper-3.4.6.tar.gz /opt/
 tar –xvf /opt/zookeeper-3.4.6.tar.gz
-export ZOOKEEPER_HOME =/opt/zookeeper
+export ZOOKEEPER_HOME=/opt/zookeeper
+mv /opt/zookeeper-3.4.6 /opt/zookeeper
+
 
 cat >> .bashrc << EOF
 export ZOOKEEPER_HOME =/opt/zookeeper
