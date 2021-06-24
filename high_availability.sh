@@ -8,8 +8,8 @@
 ## On all the nodes
 
 wget https://archive.apache.org/dist/zookeeper/zookeeper-3.4.6/zookeeper-3.4.6.tar.gz
-tar –xvf zookeeper-3.4.6.tar.gz
-mv /opt/zookeeper-3.4.6.tar.gz /opt/zookeeper
+mv zookeeper-3.4.6.tar.gz /opt/
+tar –xvf /opt/zookeeper-3.4.6.tar.gz
 export ZOOKEEPER_HOME =/opt/zookeeper
 
 cat >> .bashrc << EOF
