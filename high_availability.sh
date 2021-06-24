@@ -1,15 +1,18 @@
 ######################## High Availability ######################
 # https://www.edureka.co/blog/how-to-set-up-hadoop-cluster-with-hdfs-high-availability/
-# test1 -> namenode 1, journalnode
-# test2 -> namenode 2, journalnode
+# ${nn1} -> namenode 1, journalnode
+# ${nn2} -> namenode 2, journalnode
 # test3 -> datanode, journalnode
 # cluster nameservice -> ha-cluster
 
 ## On all the nodes
 
+nn1=''
+nn2=''
+
 wget https://archive.apache.org/dist/zookeeper/zookeeper-3.4.6/zookeeper-3.4.6.tar.gz
 mv zookeeper-3.4.6.tar.gz /opt/
-tar –xvf /opt/zookeeper-3.4.6.tar.gz
+tar –xvf zookeeper-3.4.6.tar.gz
 export ZOOKEEPER_HOME=/opt/zookeeper
 mv /opt/zookeeper-3.4.6 /opt/zookeeper
 
@@ -45,27 +48,27 @@ cat >> /opt/hadoop/etc/hadoop/hdfs-site.xml << EOF
  </property>
  <property>
  <name>dfs.ha.namenodes.ha-cluster</name>
- <value>test1,test2</value>
+ <value>${nn1},${nn2}</value>
  </property>
  <property>
- <name>dfs.namenode.rpc-address.ha-cluster.test1</name>
- <value>test1.cluster.com:9000</value>
+ <name>dfs.namenode.rpc-address.ha-cluster.${nn1}</name>
+ <value>${nn1}.cluster.com:9000</value>
  </property>
  <property>
- <name>dfs.namenode.rpc-address.ha-cluster.test2</name>
- <value>test2.cluster.com:9000</value>
+ <name>dfs.namenode.rpc-address.ha-cluster.${nn2}</name>
+ <value>${nn2}.cluster.com:9000</value>
  </property>
  <property>
- <name>dfs.namenode.http-address.ha-cluster.test1</name>
- <value>test1.cluster.com:50070</value>
+ <name>dfs.namenode.http-address.ha-cluster.${nn1}</name>
+ <value>${nn1}.cluster.com:50070</value>
  </property>
  <property>
- <name>dfs.namenode.http-address.ha-cluster.test2</name>
- <value>test2.cluster.com:50070</value>
+ <name>dfs.namenode.http-address.ha-cluster.${nn2}</name>
+ <value>${nn2}.cluster.com:50070</value>
  </property>
  <property>
  <name>dfs.namenode.shared.edits.dir</name>
- <value>qjournal://test1.cluster.com:8485;test2.cluster.com:8485;test3.cluster.com:8485/ha-cluster</value>
+ <value>qjournal://${nn1}.cluster.com:8485;${nn2}.cluster.com:8485;test3.cluster.com:8485/ha-cluster</value>
  </property>
  <property>
  <name>dfs.client.failover.proxy.provider.ha-cluster</name>
@@ -77,7 +80,7 @@ cat >> /opt/hadoop/etc/hadoop/hdfs-site.xml << EOF
  </property>
  <property>
  <name>ha.zookeeper.quorum</name>
- <value> test1.cluster.com:2181,test2.cluster.com:2181,test3.cluster.com:2181 </value>
+ <value> ${nn1}.cluster.com:2181,${nn2}.cluster.com:2181,test3.cluster.com:2181 </value>
  </property>
  <property>
  <name>dfs.ha.fencing.methods</name>
@@ -94,11 +97,10 @@ mv /opt/zookeeper/conf/zoo_sample.cfg /opt/zookeeper/conf/zoo.cfg
 mkdir -p /opt/data/zookeeper
 
 echo "dataDir=/opt/data/zookeeper
-Server.1=test1.cluster.com:2888:3888
-Server.2=test2.cluster.com:2888:3888
-Server.3=test3.cluster.com:2888:3888" >> /opt/zookeeper/conf/zoo.cfg
+Server.1=${nn1}.cluster.com:2888:3888
+Server.2=${nn2}.cluster.com:2888:3888" >> /opt/zookeeper/conf/zoo.cfg
 
-# These /opt/hadoop folder hsould be present in all the nodes, zookeeper folder should be present in all the quorum nodes
+# These /opt/hadoop folder should be present in all the nodes, zookeeper folder should be present in all the quorum nodes
 # In the datanodes dfs.datanode.data.dir should also be present.
 
 # In Active namenode
@@ -146,5 +148,5 @@ hadoop-daemon.sh start zkfc
 
 # Now execute jps to see DFSZkFailoverController daemons.
 # Now execute the below command in both the namenodes to know which node is active and which is standby.
-hdfs haadmin –getServiceState test1
-hdfs haadmin –getServiceState test2
+hdfs haadmin –getServiceState ${nn1}
+hdfs haadmin –getServiceState ${nn2}
