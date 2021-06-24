@@ -37,7 +37,6 @@ EOF
 sed -i '/\/configuration/d' /opt/hadoop/etc/hadoop/hdfs-site.xml
 
 cat >> /opt/hadoop/etc/hadoop/hdfs-site.xml << EOF
-<configuration>
  <property>
  <name>dfs.permissions</name>
  <value>false</value>
