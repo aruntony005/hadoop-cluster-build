@@ -70,6 +70,10 @@ cat >> /opt/hadoop/etc/hadoop/hdfs-site.xml << EOF
             <name>dfs.replication</name>
             <value>1</value>
     </property>
+    <property>
+            <name>dfs.namenode.acls.enabled</name>
+            <value>true</value>
+    </property>
 </configuration>
 EOF
 
@@ -155,6 +159,10 @@ start-all.sh
 
 # Get the hadoop namenode UI in 
 # http://<10.128.0.50 ip>:9870/
+# Now we wont be able to write in hdfs as root or any other user. So we have to set acls. First we have to enable acl in hdfs-site.xml. 
+# Then execute the below command as hdfs user
+
+hdfs dfs -setfacl -m user:root:rwx /
 
 ######## SPARK #############
 
