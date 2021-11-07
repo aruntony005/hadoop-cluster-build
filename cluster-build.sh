@@ -168,6 +168,10 @@ hdfs dfs -setfacl -m user:root:rwx /
 
 hdfs dfs -mkdir -p /spark/logs
 
+# execute the below command as hdfs user
+
+hdfs dfs -setfacl -m -R user:root:rwx /
+
 wget https://downloads.apache.org/spark/spark-2.4.8/spark-2.4.8-bin-hadoop2.7.tgz
 tar -xzf spark-2.4.8-bin-hadoop2.7.tgz
 mv spark-2.4.8-bin-hadoop2.7 /opt/spark
