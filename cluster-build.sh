@@ -200,7 +200,7 @@ mv /opt/spark/conf/spark-defaults.conf.template /opt/spark/conf/spark-defaults.c
 
 
 cat >> /opt/spark/conf/spark-defaults.conf << EOF
-spark.${ip}    yarn
+spark.master    yarn
 spark.driver.memory    512m
 spark.yarn.am.memory    512m
 spark.executor.memory          512m
@@ -210,6 +210,7 @@ spark.history.provider            org.apache.spark.deploy.history.FsHistoryProvi
 spark.history.fs.logDirectory     hdfs://${ip}:9000/spark/logs
 spark.history.fs.update.interval  10s
 spark.history.ui.port             18080
+spark.yarn.historyServer.address ${ip}:18080
 EOF
 
 mv /opt/spark/conf/spark-env.sh.template /opt/spark/conf/spark-env.sh
@@ -222,6 +223,7 @@ echo "export JAVA_HOME=${java_home}" >> /opt/spark/conf/spark-env.sh
 echo "${ip}" > /opt/spark/conf/slaves
 
 sh /opt/spark/sbin/start-all.sh
+sh /opt/spark/sbin/start-history-server.sh
 
 # Get the spark ui in 
 # http://<10.128.0.50 ip>:8080
